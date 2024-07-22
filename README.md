@@ -90,3 +90,31 @@ $ python3 /path/to/pyaltherma_mqtt.py
 | leaving_water_temp_heating        | Leaving water temperature for heating        | X    |       |                                                              | only for "climate_control_mode" set to "heating" and "climate_control_heating_config" set to "2" |
 | leaving_water_temp_cooling        | Leaving water temperature for cooling        | X    |       |                                                              | only for "climate_control_mode" set to "cooling" and "climate_control_cooling_config" set to "2" |
 | leaving_water_temp_auto           | Leaving water temperature for auto           | X    |       |                                                              | only for "climate_control_mode" set to "auto"                                                    |
+
+## Service implementation (systemd)
+
+To run this module as a service, consider using a systemd definition.
+Create the file `/etc/systemd/system/pyaltherma_mqtt.service` with following content:
+
+```
+[Unit]
+Description=pyaltherma_mqtt
+After=network.target
+
+[Service]
+Type=simple
+EnvironmentFile=/path/to/file/with/env/variables
+ExecStart=/usr/bin/python3 /path/to/pyaltherma_mqtt.py
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+[Unit]
+```
+
+Just reload the daemon and start the service.
+
+```
+sudo systemctl enable pyaltherma_mqtt
+sudo systemctl start pyaltherma_mqtt
+```

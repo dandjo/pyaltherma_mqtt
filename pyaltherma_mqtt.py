@@ -108,6 +108,7 @@ class AsyncMqtt:
 
     async def publish_values(self):
         while True:
+            await self.daikin_device.get_current_state()
             values = {
                 'dhw_power': '1' if self.daikin_device.hot_water_tank.is_turned_on() else '0',
                 'dhw_temp': str(self.daikin_device.hot_water_tank.tank_temperature),
@@ -153,7 +154,6 @@ class AsyncMqtt:
             connection = DaikinWSConnection(session, daikin_host)
             self.daikin_device = AlthermaController(connection)
             await self.daikin_device.discover_units()
-            await self.daikin_device.get_current_state()
 
             # publish values
             self.loop.create_task(self.publish_values())

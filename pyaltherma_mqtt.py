@@ -36,12 +36,16 @@ class AlthermaControllerMock():
     def climate_control(self):
         return AlthermaControllerMock()
 
+    @property
+    def powerful(self):
+        return bool(random.randrange(2))
+
     async def get_current_state(self):
         return {}
 
     def is_turned_on(self):
         return bool(random.randrange(2))
-
+        
     def __getattr__(self, attr):
         return random.randrange(50)
 
@@ -97,21 +101,21 @@ class AsyncMqtt:
 
     async def handle_message(self, topic, payload):
         if topic == 'dhw_power':
-            if payload == '1':
+            if payload.upper() == 'ON' or payload == '1':
                 self.daikin_device.hot_water_tank.turn_on()
-            if payload == '0':
+            if payload.upper() == 'off' or payload == '0':
                 self.daikin_device.hot_water_tank.turn_off()
         elif topic == 'dhw_target_temp':
             self.daikin_device.hot_water_tank.set_target_temperature(float(payload))
         elif topic == 'dhw_powerful':
-            if payload == '1':
+            if payload.upper() == 'ON' or payload == '1':
                 self.daikin_device.hot_water_tank.set_powerful(True)
-            if payload == '0':
+            if payload.upper() == 'OFF' or payload == '0':
                 self.daikin_device.hot_water_tank.set_powerful(False)
         elif topic == 'climate_control_power':
-            if payload == '1':
+            if payload.upper() == 'ON' or payload == '1':
                 self.daikin_device.climate_control.turn_on()
-            if payload == '0':
+            if payload.upper() == 'OFF' or payload == '0':
                 self.daikin_device.climate_control.turn_off()
         elif topic == 'climate_control_mode':
             self.daikin_device.climate_control.set_operation_mode(payload)
@@ -132,14 +136,14 @@ class AsyncMqtt:
         while True:
             await self.daikin_device.get_current_state()
             values = {
-                'dhw_power': '1' if self.daikin_device.hot_water_tank.is_turned_on() else '0',
+                'dhw_power': 'ON' if self.daikin_device.hot_water_tank.is_turned_on() else 'OFF',
                 'dhw_temp': str(self.daikin_device.hot_water_tank.tank_temperature),
                 'dhw_target_temp': str(self.daikin_device.hot_water_tank.target_temperature),
-                'dhw_powerful': '1' if self.daikin_device.hot_water_tank.powerful else '0',
+                'dhw_powerful': 'ON' if self.daikin_device.hot_water_tank.powerful else 'OFF',
                 'indoor_temp': str(self.daikin_device.climate_control.indoor_temperature),
                 'climate_control_heating_config': self.daikin_device.climate_control.climate_control_heating_configuration,
                 'climate_control_cooling_config': self.daikin_device.climate_control.climate_control_cooling_configuration,
-                'climate_control_power': '1' if self.daikin_device.climate_control.is_turned_on() else '0',
+                'climate_control_power': 'ON' if self.daikin_device.climate_control.is_turned_on() else 'OFF',
                 'climate_control_mode': str(self.daikin_device.climate_control.operation_mode),
                 'leaving_water_temp_current': str(self.daikin_device.climate_control.leaving_water_temperature_current),
                 'leaving_water_temp_offset_heating': str(self.daikin_device.climate_control.leaving_water_temperature_offset_heating),

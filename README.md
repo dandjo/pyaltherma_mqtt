@@ -3,7 +3,14 @@ Provides a MQTT bridge for [pyaltherma](https://github.com/tadasdanielius/pyalth
 
 ## Installation
 
-All you have to do is to install the dependencies and run the module as a service. Before you do so, take a look at the configurable environment variables. Some of them are mandatory.
+All you have to do is to install the dependencies in your python environment.
+
+```
+pip install pyaltherma
+pip install paho-mqtt
+```
+
+Before you start the script as a service, take a look at the configurable environment variables. Some of them are mandatory.
 
 | ENV                            | Default value | Mandatory | Description                                                                  |
 |--------------------------------|---------------|-----------|------------------------------------------------------------------------------|

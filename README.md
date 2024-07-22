@@ -109,7 +109,6 @@ Restart=always
 
 [Install]
 WantedBy=multi-user.target
-[Unit]
 ```
 
 Just reload the daemon and start the service.

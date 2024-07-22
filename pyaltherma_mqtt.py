@@ -131,7 +131,7 @@ class AsyncMqtt:
             else:
                 for topic, value in values.items():
                     self.client.publish('%s/%s' % (mqtt_topic_prefix_state, topic), value)
-            await asyncio.sleep(poll_timeout)
+            await asyncio.sleep(int(poll_timeout))
 
     async def main(self):
         self.disconnected = self.loop.create_future()

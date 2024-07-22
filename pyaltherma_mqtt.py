@@ -3,6 +3,8 @@ import aiohttp
 import json
 import os
 import socket
+import random
+import signal
 import uuid
 import paho.mqtt.client as mqtt
 from pyaltherma.comm import DaikinWSConnection
@@ -22,6 +24,26 @@ mqtt_topic_prefix_state = '%s/state' % mqtt_topic_prefix
 mqtt_topic_onetopic = '%s/state/%s' % (mqtt_topic_prefix, mqtt_onetopic)
 poll_timeout = os.environ.get('PYALTHERMA_POLL_TIMEOUT', 5)
 daikin_host = os.environ.get('PYALTHERMA_DAIKIN_HOST')
+daikin_device_mock = os.environ.get('PYALTHERMA_DAIKIN_DEVICE_MOCK')
+
+
+class AlthermaControllerMock():
+    @property
+    def hot_water_tank(self):
+        return AlthermaControllerMock()
+
+    @property
+    def climate_control(self):
+        return AlthermaControllerMock()
+
+    async def get_current_state(self):
+        return {}
+
+    def is_turned_on(self):
+        return bool(random.randrange(2))
+
+    def __getattr__(self, attr):
+        return random.randrange(50)
 
 
 class AsyncioHelper:
@@ -108,6 +130,7 @@ class AsyncMqtt:
 
     async def publish_values(self):
         while True:
+            await self.daikin_device.get_current_state()
             values = {
                 'dhw_power': '1' if self.daikin_device.hot_water_tank.is_turned_on() else '0',
                 'dhw_temp': str(self.daikin_device.hot_water_tank.tank_temperature),
@@ -129,8 +152,8 @@ class AsyncMqtt:
             if mqtt_onetopic:
                 self.client.publish(mqtt_topic_onetopic, json.dumps(values))
             else:
-                for topic, value in values.items():
-                    self.client.publish('%s/%s' % (mqtt_topic_prefix_state, topic), value)
+                for topic, payload in values.items():
+                    self.client.publish('%s/%s' % (mqtt_topic_prefix_state, topic), payload)
             await asyncio.sleep(int(poll_timeout))
 
     async def main(self):
@@ -150,28 +173,41 @@ class AsyncMqtt:
         self.client.socket().setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 2048)
 
         async with aiohttp.ClientSession() as session:
-            connection = DaikinWSConnection(session, daikin_host)
-            self.daikin_device = AlthermaController(connection)
-            await self.daikin_device.discover_units()
-            await self.daikin_device.get_current_state()
+            if daikin_device_mock:
+                self.daikin_device = AlthermaControllerMock()
+            else:
+                connection = DaikinWSConnection(session, daikin_host)
+                self.daikin_device = AlthermaController(connection)
+                await self.daikin_device.discover_units()
 
             # publish values
             self.loop.create_task(self.publish_values())
 
             # handle messages
             while True:
-                self.got_message = self.loop.create_future()
-                msg = await self.got_message
-                if msg.topic.startswith('%s/' % mqtt_topic_prefix_set):
-                    await self.handle_message(msg.topic.replace('%s/' % mqtt_topic_prefix_set, ''), msg.payload.decode())
-                self.got_message = None
+                try:
+                    self.got_message = self.loop.create_future()
+                    msg = await self.got_message
+                    if msg.topic.startswith('%s/' % mqtt_topic_prefix_set):
+                        await self.handle_message(msg.topic.replace('%s/' % mqtt_topic_prefix_set, ''), msg.payload.decode())
+                    self.got_message = None
+                except asyncio.exceptions.CancelledError:
+                    break
 
-            await self.daikin_device.ws_connection._client.close()
+            if not daikin_device_mock:
+                await self.daikin_device.ws_connection.close()
 
         self.client.disconnect()
         await self.disconnected
 
+
+def cancel_tasks():
+    for task in asyncio.all_tasks():
+        task.cancel()
+
+
 loop = asyncio.new_event_loop()
-async_mqtt = AsyncMqtt(loop)
-loop.run_until_complete(async_mqtt.main())
+for sig in (signal.SIGINT, signal.SIGTERM):
+    loop.add_signal_handler(sig, cancel_tasks)
+loop.run_until_complete(AsyncMqtt(loop).main())
 loop.close()

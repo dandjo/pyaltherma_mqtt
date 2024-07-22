@@ -5,16 +5,29 @@ Provides a MQTT bridge for [pyaltherma](https://github.com/tadasdanielius/pyalth
 
 All you have to do is to install the dependencies and run the module as a service. Before you do so, take a look at the configurable environment variables. Some of them are mandatory.
 
-| ENV                          | Default value | Mandatory |
-|------------------------------|---------------|-----------|
-| PYALTHERMA_MQTT_HOST         | localhost     | yes       |
-| PYALTHERMA_MQTT_PORT         | 1883          | no        |
-| PYALTHERMA_MQTT_USERNAME     | None          | no        |
-| PYALTHERMA_MQTT_PASSWORD     | None          | no        |
-| PYALTHERMA_MQTT_TOPIC_PREFIX | pyaltherma    | no        |
-| PYALTHERMA_MQTT_ONETOPIC     | None          | no        |
-| PYALTHERMA_POLL_TIMEOUT      | 5             | no        |
-| PYALTHERMA_DAIKIN_HOST       | None          | yes       |
+| ENV                            | Default value | Mandatory | Description                                                                  |
+|--------------------------------|---------------|-----------|------------------------------------------------------------------------------|
+| `PYALTHERMA_MQTT_HOST`         | localhost     | yes       | The host of the MQTT broker. Could be a hostename or IP.                     |
+| `PYALTHERMA_MQTT_PORT`         | 1883          | no        | The port of the MQTT broker. For Mosquitto it is 1883 by default.            |
+| `PYALTHERMA_MQTT_USERNAME`     | None          | no        | The username for the MQTT broker. If omitted, the password will not be used. |
+| `PYALTHERMA_MQTT_PASSWORD`     | None          | no        | The password for the MQTT broker. Mandatory if username is set.              |
+| `PYALTHERMA_MQTT_TOPIC_PREFIX` | pyaltherma    | no        | The prefix for all MQTT messages.                                            |
+| `PYALTHERMA_MQTT_ONETOPIC`     | None          | no        | If set, a single message will be sent, with all attributes as JSON.          |
+| `PYALTHERMA_POLL_TIMEOUT`      | 5             | no        | The inverval attributes should be polled from the Daikin API.                |
+| `PYALTHERMA_DAIKIN_HOST`       | None          | yes       | The host of the Daikin controller. Could be a hostname or IP.                |
+
+Copy/paste template for bash/zsh:
+
+```
+export PYALTHERMA_MQTT_HOST="localhost"
+export PYALTHERMA_MQTT_PORT="1883"
+export PYALTHERMA_MQTT_USERNAME="<replace_me_or_delete_line>"
+export PYALTHERMA_MQTT_PASSWORD="<replace_me_or_delete_line>"
+export PYALTHERMA_MQTT_TOPIC_PREFIX="pyaltherma"
+export PYALTHERMA_MQTT_ONETOPIC="one"
+export PYALTHERMA_POLL_TIMEOUT="5"
+export PYALTHERMA_DAIKIN_HOST="<replace_me>"
+```
 
 The resulting topics would be:
 
@@ -29,6 +42,12 @@ Examples with default configuration:
 |-------|----------------------------------|
 | Read  | `pyaltherma/state/dhw_temp`      |
 | Write | `pyaltherma/set/dhw_target_temp` |
+
+Example with PYALTHERMA_MQTT_ONETOPIC set to `one`:
+
+| Type  | Topic                            |
+|-------|----------------------------------|
+| Read  | `pyaltherma/state/one`           |
 
 ## Usage
 

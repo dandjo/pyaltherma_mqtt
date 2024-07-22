@@ -115,7 +115,7 @@ WantedBy=multi-user.target
 Just reload the daemon and start the service.
 
 ```
-sudo systemctl daemon-reload
-sudo systemctl enable pyaltherma_mqtt
-sudo systemctl start pyaltherma_mqtt
+$ sudo systemctl daemon-reload
+$ sudo systemctl enable pyaltherma_mqtt
+$ sudo systemctl start pyaltherma_mqtt
 ```

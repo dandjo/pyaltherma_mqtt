@@ -195,7 +195,7 @@ class AsyncMqtt:
                     break
 
             if not daikin_device_mock:
-                await self.daikin_device.ws_connection.close()
+                await connection.close()
 
         self.client.disconnect()
         await self.disconnected

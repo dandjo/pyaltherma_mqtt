@@ -33,39 +33,36 @@ class AlthermaControllerMock():
         return {}
 
     def __getattr__(self, attr):
-        try:
-            return {
-                'hot_water_tank': AlthermaControllerMock(),
-                'climate_control': AlthermaControllerMock(),
-                'is_turned_on': lambda: bool(random.randrange(2)),
-                'tank_temperature': random.randrange(30, 60, 1),
-                'target_temperature': random.randrange(35, 65, 5),
-                'powerful': bool(random.randrange(2)),
-                'indoor_temperature': random.randrange(22, 24, 1),
-                'climate_control_heating_configuration': random.randrange(1, 3, 1),
-                'climate_control_cooling_configuration': random.randrange(1, 2, 1),
-                'operation_mode': ['auto', 'cooling', 'heating', 'heating_day', 'heating_night'][random.randrange(0, 5, 1)],
-                'leaving_water_temperature_current': random.randrange(28, 35, 1),
-                'leaving_water_temperature_offset_heating': random.randrange(-5, 5, 1),
-                'leaving_water_temperature_offset_cooling': random.randrange(-5, 5, 1),
-                'leaving_water_temperature_offset_auto': random.randrange(-5, 5, 1),
-                'leaving_water_temperature_heating': random.randrange(25, 45, 1),
-                'leaving_water_temperature_cooling': random.randrange(16, 23, 1),
-                'leaving_water_temperature_auto': random.randrange(16, 45, 1),
-                'turn_on': lambda x: None,
-                'turn_off': lambda x: None,
-                'set_target_temperature': lambda x: None,
-                'set_powerful': lambda x: None,
-                'set_operation_mode': lambda x: None,
-                'set_leaving_water_temperature_offset_heating': lambda x: None,
-                'set_leaving_water_temperature_offset_cooling': lambda x: None,
-                'set_leaving_water_temperature_offset_auto': lambda x: None,
-                'set_leaving_water_temperature_heating': lambda x: None,
-                'set_leaving_water_temperature_cooling': lambda x: None,
-                'set_leaving_water_temperature_auto': lambda x: None,
-            }[attr]
-        except KeyError:
-            pass
+        return {
+            'hot_water_tank': AlthermaControllerMock(),
+            'climate_control': AlthermaControllerMock(),
+            'is_turned_on': lambda: bool(random.randrange(2)),
+            'tank_temperature': random.randrange(30, 60, 1),
+            'target_temperature': random.randrange(35, 65, 5),
+            'powerful': bool(random.randrange(2)),
+            'indoor_temperature': random.randrange(22, 24, 1),
+            'climate_control_heating_configuration': random.randrange(1, 3, 1),
+            'climate_control_cooling_configuration': random.randrange(1, 2, 1),
+            'operation_mode': ['auto', 'cooling', 'heating', 'heating_day', 'heating_night'][random.randrange(0, 5, 1)],
+            'leaving_water_temperature_current': random.randrange(28, 35, 1),
+            'leaving_water_temperature_offset_heating': random.randrange(-5, 5, 1),
+            'leaving_water_temperature_offset_cooling': random.randrange(-5, 5, 1),
+            'leaving_water_temperature_offset_auto': random.randrange(-5, 5, 1),
+            'leaving_water_temperature_heating': random.randrange(25, 45, 1),
+            'leaving_water_temperature_cooling': random.randrange(16, 23, 1),
+            'leaving_water_temperature_auto': random.randrange(16, 45, 1),
+            'turn_on': lambda x: None,
+            'turn_off': lambda x: None,
+            'set_target_temperature': lambda x: None,
+            'set_powerful': lambda x: None,
+            'set_operation_mode': lambda x: None,
+            'set_leaving_water_temperature_offset_heating': lambda x: None,
+            'set_leaving_water_temperature_offset_cooling': lambda x: None,
+            'set_leaving_water_temperature_offset_auto': lambda x: None,
+            'set_leaving_water_temperature_heating': lambda x: None,
+            'set_leaving_water_temperature_cooling': lambda x: None,
+            'set_leaving_water_temperature_auto': lambda x: None,
+        }[attr]
 
 
 class AsyncioHelper:

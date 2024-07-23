@@ -5,6 +5,7 @@ import os
 import socket
 import random
 import signal
+import time
 import uuid
 import paho.mqtt.client as mqtt
 from pyaltherma.comm import DaikinWSConnection
@@ -140,8 +141,9 @@ class AsyncMqtt:
 
     async def publish_loop(self):
         while True:
+            start_time = time.time()
             await self.daikin_device.get_current_state()
-            attrs = {
+            messages = {
                 'dhw_power': 'ON' if self.daikin_device.hot_water_tank.is_turned_on() else 'OFF',
                 'dhw_temp': str(self.daikin_device.hot_water_tank.tank_temperature),
                 'dhw_target_temp': str(self.daikin_device.hot_water_tank.target_temperature),
@@ -160,28 +162,26 @@ class AsyncMqtt:
                 'leaving_water_temp_auto': str(self.daikin_device.climate_control.leaving_water_temperature_auto),
             }
             if mqtt_onetopic:
-                self.client.publish(mqtt_topic_onetopic, json.dumps(attrs))
+                self.client.publish(mqtt_topic_onetopic, json.dumps(messages))
             else:
-                for topic, payload in attrs.items():
+                for topic, payload in messages.items():
                     self.client.publish('%s/%s' % (mqtt_topic_prefix_state, topic), payload)
-            await asyncio.sleep(int(poll_timeout))
+            await asyncio.sleep(start_time - time.time() + int(poll_timeout))
 
     async def main(self):
         self.disconnected = self.loop.create_future()
         self.got_message = None
-
+        # connecto to mqtt broker
         self.client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id=mqtt_client_id)
         self.client.on_connect = self.on_connect
         self.client.on_message = self.on_message
         self.client.on_disconnect = self.on_disconnect
         if mqtt_username:
             self.client.username_pw_set(mqtt_username, mqtt_password)
-
-        aioh = AsyncioHelper(self.loop, self.client)
-
+        AsyncioHelper(self.loop, self.client)
         self.client.connect(mqtt_host, port=mqtt_port, keepalive=60)
         self.client.socket().setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 2048)
-
+        # connect to daikin api
         async with aiohttp.ClientSession() as session:
             if daikin_device_mock:
                 self.daikin_device = AlthermaControllerMock()
@@ -189,11 +189,9 @@ class AsyncMqtt:
                 connection = DaikinWSConnection(session, daikin_host)
                 self.daikin_device = AlthermaController(connection)
                 await self.daikin_device.discover_units()
-
-            # publish attributes
+            # publish messages
             self.loop.create_task(self.publish_loop())
-
-            # handle messages
+            # handle incoming messages
             while True:
                 try:
                     self.got_message = self.loop.create_future()
@@ -203,10 +201,8 @@ class AsyncMqtt:
                     self.got_message = None
                 except asyncio.exceptions.CancelledError:
                     break
-
             if not daikin_device_mock:
                 await connection.close()
-
         self.client.disconnect()
         await self.disconnected
 

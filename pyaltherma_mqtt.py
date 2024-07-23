@@ -53,7 +53,7 @@ class AlthermaControllerMock():
                 'leaving_water_temperature_cooling': random.randrange(16, 23, 1),
                 'leaving_water_temperature_auto': random.randrange(16, 45, 1),
             }[attr]
-        except IndexError:
+        except KeyError:
             return None
 
 

@@ -22,7 +22,7 @@ Before you start the script as a service, take a look at the configurable enviro
 | `PYALTHERMA_MQTT_ONETOPIC`      | None          | no        | If set, a single message will be sent, with all attributes as JSON.          |
 | `PYALTHERMA_POLL_TIMEOUT`       | 5             | no        | The inverval attributes should be polled from the Daikin API.                |
 | `PYALTHERMA_DAIKIN_HOST`        | None          | yes       | The host of the Daikin controller. Could be a hostname or IP.                |
-| `PYALTHERMA_DAIKIN_DEVICE_MOCK` | None          | no        | If set, the internal mock will be used in place of the daikin api.           |
+| `PYALTHERMA_DAIKIN_DEVICE_MOCK` | None          | no        | If set, the internal mock will be used in place of pyaltherma's api.         |
 
 Copy/paste template for bash/zsh:
 

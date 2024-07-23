@@ -36,18 +36,30 @@ class AlthermaControllerMock():
     def climate_control(self):
         return AlthermaControllerMock()
 
-    @property
-    def powerful(self):
-        return bool(random.randrange(2))
-
     async def get_current_state(self):
         return {}
 
-    def is_turned_on(self):
-        return bool(random.randrange(2))
-        
     def __getattr__(self, attr):
-        return random.randrange(50)
+        try:
+            return {
+                'is_turned_on': lambda: bool(random.randrange(2)),
+                'tank_temperature': random.randrange(30, 60, 1),
+                'target_temperature': 45,
+                'powerful': bool(random.randrange(2)),
+                'indoor_temperature': random.randrange(22, 24, 1),
+                'climate_control_heating_configuration': random.randrange(1, 3, 1),
+                'climate_control_cooling_configuration': random.randrange(1, 2, 1),
+                'operation_mode': ['auto', 'cooling', 'heating', 'heating_day', 'heating_night'][random.randrange(0, 5, 1)],
+                'leaving_water_temperature_current': random.randrange(28, 35, 1),
+                'leaving_water_temperature_offset_heating': random.randrange(-5, 5, 1),
+                'leaving_water_temperature_offset_cooling': random.randrange(-5, 5, 1),
+                'leaving_water_temperature_offset_auto': random.randrange(-5, 5, 1),
+                'leaving_water_temperature_heating': random.randrange(25, 45, 1),
+                'leaving_water_temperature_cooling': random.randrange(16, 23, 1),
+                'leaving_water_temperature_auto': random.randrange(16, 45, 1),
+            }[attr]
+        except IndexError:
+            return None
 
 
 class AsyncioHelper:
@@ -91,7 +103,7 @@ class AsyncMqtt:
 
     def on_connect(self, client, userdata, flags, reason_code, properties):
         client.subscribe('%s/#' % mqtt_topic_prefix_set)
-    
+
     def on_message(self, client, userdata, msg):
         if self.got_message and msg.topic.startswith('%s/' % mqtt_topic_prefix_set):
             self.got_message.set_result(msg)
@@ -132,10 +144,10 @@ class AsyncMqtt:
         elif topic == 'leaving_water_temp_auto':
             self.daikin_device.climate_control.set_leaving_water_temperature_auto(round(float(payload)))
 
-    async def publish_values(self):
+    async def publish_loop(self):
         while True:
             await self.daikin_device.get_current_state()
-            values = {
+            attrs = {
                 'dhw_power': 'ON' if self.daikin_device.hot_water_tank.is_turned_on() else 'OFF',
                 'dhw_temp': str(self.daikin_device.hot_water_tank.tank_temperature),
                 'dhw_target_temp': str(self.daikin_device.hot_water_tank.target_temperature),
@@ -154,9 +166,9 @@ class AsyncMqtt:
                 'leaving_water_temp_auto': str(self.daikin_device.climate_control.leaving_water_temperature_auto),
             }
             if mqtt_onetopic:
-                self.client.publish(mqtt_topic_onetopic, json.dumps(values))
+                self.client.publish(mqtt_topic_onetopic, json.dumps(attrs))
             else:
-                for topic, payload in values.items():
+                for topic, payload in attrs.items():
                     self.client.publish('%s/%s' % (mqtt_topic_prefix_state, topic), payload)
             await asyncio.sleep(int(poll_timeout))
 
@@ -184,8 +196,8 @@ class AsyncMqtt:
                 self.daikin_device = AlthermaController(connection)
                 await self.daikin_device.discover_units()
 
-            # publish values
-            self.loop.create_task(self.publish_values())
+            # publish attributes
+            self.loop.create_task(self.publish_loop())
 
             # handle messages
             while True:

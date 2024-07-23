@@ -41,15 +41,15 @@ export PYALTHERMA_DAIKIN_DEVICE_MOCK="<replace_me_or_delete_line>"
 Copy/paste template for environment file (e.g. `/etc/environment`):
 
 ```
-export PYALTHERMA_MQTT_HOST="localhost"
-export PYALTHERMA_MQTT_PORT="1883"
-export PYALTHERMA_MQTT_USERNAME="<replace_me_or_delete_line>"
-export PYALTHERMA_MQTT_PASSWORD="<replace_me_or_delete_line>"
-export PYALTHERMA_MQTT_TOPIC_PREFIX="pyaltherma"
-export PYALTHERMA_MQTT_ONETOPIC="one"
-export PYALTHERMA_POLL_TIMEOUT="5"
-export PYALTHERMA_DAIKIN_HOST="<replace_me>"
-export PYALTHERMA_DAIKIN_DEVICE_MOCK="<replace_me_or_delete_line>"
+PYALTHERMA_MQTT_HOST="localhost"
+PYALTHERMA_MQTT_PORT="1883"
+PYALTHERMA_MQTT_USERNAME="<replace_me_or_delete_line>"
+PYALTHERMA_MQTT_PASSWORD="<replace_me_or_delete_line>"
+PYALTHERMA_MQTT_TOPIC_PREFIX="pyaltherma"
+PYALTHERMA_MQTT_ONETOPIC="one"
+PYALTHERMA_POLL_TIMEOUT="5"
+PYALTHERMA_DAIKIN_HOST="<replace_me>"
+PYALTHERMA_DAIKIN_DEVICE_MOCK="<replace_me_or_delete_line>"
 ```
 
 The resulting topics would be:

@@ -24,20 +24,6 @@ Before you start the script as a service, take a look at the configurable enviro
 | `PYALTHERMA_DAIKIN_HOST`        | None          | yes       | The host of the Daikin controller. Could be a hostname or IP.                |
 | `PYALTHERMA_DAIKIN_DEVICE_MOCK` | None          | no        | If set, the internal mock will be used in place of pyaltherma's api.         |
 
-Copy/paste template for bash/zsh:
-
-```
-export PYALTHERMA_MQTT_HOST="localhost"
-export PYALTHERMA_MQTT_PORT="1883"
-export PYALTHERMA_MQTT_USERNAME="<replace_me_or_delete_line>"
-export PYALTHERMA_MQTT_PASSWORD="<replace_me_or_delete_line>"
-export PYALTHERMA_MQTT_TOPIC_PREFIX="pyaltherma"
-export PYALTHERMA_MQTT_ONETOPIC="one"
-export PYALTHERMA_POLL_TIMEOUT="5"
-export PYALTHERMA_DAIKIN_HOST="<replace_me>"
-export PYALTHERMA_DAIKIN_DEVICE_MOCK="<replace_me_or_delete_line>"
-```
-
 Copy/paste template for environment file (e.g. `/etc/environment`):
 
 ```

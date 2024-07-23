@@ -28,23 +28,17 @@ daikin_device_mock = os.environ.get('PYALTHERMA_DAIKIN_DEVICE_MOCK')
 
 
 class AlthermaControllerMock():
-    @property
-    def hot_water_tank(self):
-        return AlthermaControllerMock()
-
-    @property
-    def climate_control(self):
-        return AlthermaControllerMock()
-
     async def get_current_state(self):
         return {}
 
     def __getattr__(self, attr):
         try:
             return {
+                'hot_water_tank': AlthermaControllerMock(),
+                'climate_control': AlthermaControllerMock(),
                 'is_turned_on': lambda: bool(random.randrange(2)),
                 'tank_temperature': random.randrange(30, 60, 1),
-                'target_temperature': 45,
+                'target_temperature': random.randrange(35, 65, 5),
                 'powerful': bool(random.randrange(2)),
                 'indoor_temperature': random.randrange(22, 24, 1),
                 'climate_control_heating_configuration': random.randrange(1, 3, 1),

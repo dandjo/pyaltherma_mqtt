@@ -52,9 +52,20 @@ class AlthermaControllerMock():
                 'leaving_water_temperature_heating': random.randrange(25, 45, 1),
                 'leaving_water_temperature_cooling': random.randrange(16, 23, 1),
                 'leaving_water_temperature_auto': random.randrange(16, 45, 1),
+                'turn_on': lambda: None,
+                'turn_off': lambda: None,
+                'set_target_temperature': lambda: None,
+                'set_powerful': lambda: None,
+                'set_operation_mode': lambda: None,
+                'set_leaving_water_temperature_offset_heating': lambda: None,
+                'set_leaving_water_temperature_offset_cooling': lambda: None,
+                'set_leaving_water_temperature_offset_auto': lambda: None,
+                'set_leaving_water_temperature_heating': lambda: None,
+                'set_leaving_water_temperature_cooling': lambda: None,
+                'set_leaving_water_temperature_auto': lambda: None,
             }[attr]
         except KeyError:
-            return None
+            pass
 
 
 class AsyncioHelper:

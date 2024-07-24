@@ -112,7 +112,8 @@ class AsyncMqtt:
         self.loop = loop
 
     def on_connect(self, mqtt_client, userdata, flags, reason_code, properties):
-        mqtt_client.subscribe('%s/#' % MQTT_TOPIC_PREFIX_SET)
+        if self.mqtt_conn_future:
+            self.mqtt_conn_future.set_result(reason_code)
 
     def on_message(self, mqtt_client, userdata, msg):
         if self.mqtt_msg_future and msg.topic.startswith('%s/' % MQTT_TOPIC_PREFIX_SET):
@@ -187,6 +188,7 @@ class AsyncMqtt:
 
     async def main(self):
         self.mqtt_msg_future = None
+        self.mqtt_conn_future = self.loop.create_future()
         self.mqtt_disconn_future = self.loop.create_future()
         # connecto to mqtt broker
         self.mqtt_client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id=MQTT_CLIENT_ID)
@@ -198,6 +200,8 @@ class AsyncMqtt:
         AsyncioHelper(self.loop, self.mqtt_client)
         self.mqtt_client.connect(MQTT_HOST, port=MQTT_PORT, keepalive=60)
         self.mqtt_client.socket().setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 2048)
+        await self.mqtt_conn_future
+        self.mqtt_client.subscribe('%s/#' % MQTT_TOPIC_PREFIX_SET)
         # connect to daikin api
         if DAIKIN_DEVICE_MOCK:
             self.daikin_device = AlthermaControllerMock()
@@ -214,7 +218,7 @@ class AsyncMqtt:
                 if msg.topic.startswith('%s/' % MQTT_TOPIC_PREFIX_SET):
                     await self.handle_message(msg.topic.replace('%s/' % MQTT_TOPIC_PREFIX_SET, ''), msg.payload.decode())
                 self.mqtt_msg_future = None
-            except asyncio.exceptions.CancelledError:
+            except asyncio.CancelledError:
                 break
             except MqttDisconnect as e:
                 logger.error('MQTT disconnected: %s' % e)

@@ -108,6 +108,8 @@ Type=simple
 EnvironmentFile=/path/to/file/with/env/variables
 ExecStart=/usr/bin/python3 /path/to/pyaltherma_mqtt.py
 Restart=always
+RestartSec=10
+StartLimitInterval=0
 
 [Install]
 WantedBy=multi-user.target

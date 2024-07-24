@@ -98,7 +98,7 @@ class AsyncioHelper:
                 break
 
 
-class MqttDisconnectError(Exception):
+class PyalthermaException(Exception):
     pass
 
 
@@ -115,8 +115,8 @@ class PyalthermaMessenger:
                 await self.await_message()
             except asyncio.CancelledError:
                 break
-            except MqttDisconnectError as e:
-                logger.error('MQTT Disconnected: %s' % e)
+            except PyalthermaException as e:
+                logger.warning('Messenger loop stopped: %s' % e)
                 break
 
     async def await_message(self):
@@ -133,7 +133,7 @@ class PyalthermaMessenger:
 
     def stop(self, reason=None):
         if self.future and not self.future.done():
-            self.future.set_exception(MqttDisconnectError(reason or 'Stopped'))
+            self.future.set_exception(PyalthermaException(reason))
 
     def handle_message(self, topic, payload):
         if topic == 'dhw_power':
@@ -237,6 +237,8 @@ class PyalthermaMqtt:
 
     def on_disconnect(self, client, userdata, disconnect_flags, reason_code, properties):
         self.disconnected_future.set_result(reason_code)
+        if self.publisher:
+            self.publisher.stop(reason=reason_code)
         if self.messenger:
             self.messenger.stop(reason=reason_code)
 
@@ -263,12 +265,12 @@ class PyalthermaMqtt:
             await self.altherma.discover_units()
         self.messenger = PyalthermaMessenger(self.loop, self.mqttc, self.altherma)
         # message publisher
-        publisher = PyalthermaPublisher(self.loop, self.messenger)
-        publisher.start()
+        self.publisher = PyalthermaPublisher(self.loop, self.messenger)
+        self.publisher.start()
         # messenger loop
         await self.messenger.loop()
         # graceful shutdown
-        publisher.stop()
+        self.publisher.stop()
         await self.altherma.ws_connection.close()
         self.mqttc.disconnect()
         await self.disconnected_future

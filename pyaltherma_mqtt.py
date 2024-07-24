@@ -103,7 +103,7 @@ class AsyncioHelper:
                 break
 
 
-class MqttDisconnect(Exception):
+class MqttDisconnectError(Exception):
     pass
 
 
@@ -111,20 +111,19 @@ class AsyncMqtt:
     def __init__(self, loop):
         self.loop = loop
 
-    def on_connect(self, mqtt_client, userdata, flags, reason_code, properties):
-        if self.mqtt_conn_future:
-            self.mqtt_conn_future.set_result(reason_code)
+    def on_connect(self, client, userdata, connect_flags, reason_code, properties):
+        self.mqtt_conn_future.set_result(reason_code)
 
-    def on_message(self, mqtt_client, userdata, msg):
-        if self.mqtt_msg_future and msg.topic.startswith('%s/' % MQTT_TOPIC_PREFIX_SET):
-            self.mqtt_msg_future.set_result(msg)
+    def on_message(self, client, userdata, msg):
+        if self.main_future:
+            self.main_future.set_result(msg)
 
-    def on_disconnect(self, mqtt_client, userdata, flags, reason_code, properties):
-        if self.mqtt_msg_future and not self.mqtt_msg_future.done():
-            self.mqtt_msg_future.set_exception(MqttDisconnect(reason_code))
-            self.mqtt_disconn_future.set_result(reason_code)
+    def on_disconnect(self, client, userdata, disconnect_flags, reason_code, properties):
+        self.mqtt_disconn_future.set_result(reason_code)
+        if self.main_future and not self.main_future.done():
+            self.main_future.set_exception(MqttDisconnectError(reason_code))
 
-    async def handle_message(self, topic, payload):
+    def handle_message(self, topic, payload):
         if topic == 'dhw_power':
             if payload.upper() == 'ON' or payload == '1':
                 self.daikin_device.hot_water_tank.turn_on()
@@ -157,37 +156,60 @@ class AsyncMqtt:
         elif topic == 'leaving_water_temp_auto':
             self.daikin_device.climate_control.set_leaving_water_temperature_auto(round(float(payload)))
 
+    def publish_messages(self):
+        messages = {
+            'dhw_power': 'ON' if self.daikin_device.hot_water_tank.is_turned_on() else 'OFF',
+            'dhw_temp': str(self.daikin_device.hot_water_tank.tank_temperature),
+            'dhw_target_temp': str(self.daikin_device.hot_water_tank.target_temperature),
+            'dhw_powerful': 'ON' if self.daikin_device.hot_water_tank.powerful else 'OFF',
+            'indoor_temp': str(self.daikin_device.climate_control.indoor_temperature),
+            'climate_control_heating_config': self.daikin_device.climate_control.climate_control_heating_configuration,
+            'climate_control_cooling_config': self.daikin_device.climate_control.climate_control_cooling_configuration,
+            'climate_control_power': 'ON' if self.daikin_device.climate_control.is_turned_on() else 'OFF',
+            'climate_control_mode': str(self.daikin_device.climate_control.operation_mode),
+            'leaving_water_temp_current': str(self.daikin_device.climate_control.leaving_water_temperature_current),
+            'leaving_water_temp_offset_heating': str(self.daikin_device.climate_control.leaving_water_temperature_offset_heating),
+            'leaving_water_temp_offset_cooling': str(self.daikin_device.climate_control.leaving_water_temperature_offset_cooling),
+            'leaving_water_temp_offset_auto': str(self.daikin_device.climate_control.leaving_water_temperature_offset_auto),
+            'leaving_water_temp_heating': str(self.daikin_device.climate_control.leaving_water_temperature_heating),
+            'leaving_water_temp_cooling': str(self.daikin_device.climate_control.leaving_water_temperature_cooling),
+            'leaving_water_temp_auto': str(self.daikin_device.climate_control.leaving_water_temperature_auto),
+        }
+        if MQTT_ONETOPIC:
+            self.mqtt_client.publish(MQTT_TOPIC_ONETOPIC, json.dumps(messages))
+        else:
+            for topic, payload in messages.items():
+                self.mqtt_client.publish('%s/%s' % (MQTT_TOPIC_PREFIX_STATE, topic), payload)
+
+    def task_done_callback(self, task):
+        try:
+            self.main_future.set_exception(task.exception() or asyncio.CancelledError)
+        except asyncio.CancelledError:
+            pass
+
     async def publish_loop(self):
         while True:
             start_time = time.time()
             await self.daikin_device.get_current_state()
-            messages = {
-                'dhw_power': 'ON' if self.daikin_device.hot_water_tank.is_turned_on() else 'OFF',
-                'dhw_temp': str(self.daikin_device.hot_water_tank.tank_temperature),
-                'dhw_target_temp': str(self.daikin_device.hot_water_tank.target_temperature),
-                'dhw_powerful': 'ON' if self.daikin_device.hot_water_tank.powerful else 'OFF',
-                'indoor_temp': str(self.daikin_device.climate_control.indoor_temperature),
-                'climate_control_heating_config': self.daikin_device.climate_control.climate_control_heating_configuration,
-                'climate_control_cooling_config': self.daikin_device.climate_control.climate_control_cooling_configuration,
-                'climate_control_power': 'ON' if self.daikin_device.climate_control.is_turned_on() else 'OFF',
-                'climate_control_mode': str(self.daikin_device.climate_control.operation_mode),
-                'leaving_water_temp_current': str(self.daikin_device.climate_control.leaving_water_temperature_current),
-                'leaving_water_temp_offset_heating': str(self.daikin_device.climate_control.leaving_water_temperature_offset_heating),
-                'leaving_water_temp_offset_cooling': str(self.daikin_device.climate_control.leaving_water_temperature_offset_cooling),
-                'leaving_water_temp_offset_auto': str(self.daikin_device.climate_control.leaving_water_temperature_offset_auto),
-                'leaving_water_temp_heating': str(self.daikin_device.climate_control.leaving_water_temperature_heating),
-                'leaving_water_temp_cooling': str(self.daikin_device.climate_control.leaving_water_temperature_cooling),
-                'leaving_water_temp_auto': str(self.daikin_device.climate_control.leaving_water_temperature_auto),
-            }
-            if MQTT_ONETOPIC:
-                self.mqtt_client.publish(MQTT_TOPIC_ONETOPIC, json.dumps(messages))
-            else:
-                for topic, payload in messages.items():
-                    self.mqtt_client.publish('%s/%s' % (MQTT_TOPIC_PREFIX_STATE, topic), payload)
+            self.publish_messages()
             await asyncio.sleep(start_time - time.time() + int(POLL_TIMEOUT))
 
+    async def main_loop(self):
+        while True:
+            try:
+                self.main_future = self.loop.create_future()
+                msg = await self.main_future
+                if msg.topic.startswith('%s/' % MQTT_TOPIC_PREFIX_SET):
+                    self.handle_message(msg.topic.replace('%s/' % MQTT_TOPIC_PREFIX_SET, ''), msg.payload.decode())
+                self.main_future = None
+            except asyncio.CancelledError:
+                break
+            except MqttDisconnectError as e:
+                logger.error('MQTT disconnected: %s' % e)
+                break
+
     async def main(self):
-        self.mqtt_msg_future = None
+        self.main_future = None
         self.mqtt_conn_future = self.loop.create_future()
         self.mqtt_disconn_future = self.loop.create_future()
         # connecto to mqtt broker
@@ -210,19 +232,9 @@ class AsyncMqtt:
             await self.daikin_device.discover_units()
         # publish messages
         publish_task = self.loop.create_task(self.publish_loop())
-        # handle incoming messages
-        while True:
-            try:
-                self.mqtt_msg_future = self.loop.create_future()
-                msg = await self.mqtt_msg_future
-                if msg.topic.startswith('%s/' % MQTT_TOPIC_PREFIX_SET):
-                    await self.handle_message(msg.topic.replace('%s/' % MQTT_TOPIC_PREFIX_SET, ''), msg.payload.decode())
-                self.mqtt_msg_future = None
-            except asyncio.CancelledError:
-                break
-            except MqttDisconnect as e:
-                logger.error('MQTT disconnected: %s' % e)
-                break
+        publish_task.add_done_callback(self.task_done_callback)
+        # main loop
+        await self.main_loop()
         # graceful shutdown
         publish_task.cancel()
         await self.daikin_device.ws_connection.close()

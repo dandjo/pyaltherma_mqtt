@@ -221,11 +221,8 @@ class PyalthermaMqtt:
         await self.connected_future
         self.mqttc.subscribe('%s/#' % MQTT_TOPIC_PREFIX_SET)
         # connect to daikin api
-        if ALTHERMA_DEVICE_MOCK:
-            self.altherma = AlthermaControllerMock()
-        else:
-            self.altherma = AlthermaController(DaikinWSConnection(aiohttp.ClientSession(), ALTHERMA_HOST))
-            await self.altherma.discover_units()
+        self.altherma = AlthermaController(DaikinWSConnection(aiohttp.ClientSession(), ALTHERMA_HOST))
+        await self.altherma.discover_units()
         self.messenger = PyalthermaMessenger(self.loop, self.mqttc, self.altherma)
         # message publisher
         self.publisher = PyalthermaPublisher(self.loop, self.messenger)

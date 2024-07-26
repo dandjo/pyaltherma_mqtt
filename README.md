@@ -50,7 +50,7 @@ Examples with default configuration:
 | Read  | `pyaltherma/state/dhw_temp`      |
 | Write | `pyaltherma/set/dhw_target_temp` |
 
-Example with PYALTHERMA_MQTT_ONETOPIC set to `one`:
+Example with `PYALTHERMA_MQTT_ONETOPIC` set to `one`:
 
 | Type  | Topic                            |
 |-------|----------------------------------|

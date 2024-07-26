@@ -21,8 +21,7 @@ Before you start the script as a service, take a look at the configurable enviro
 | `PYALTHERMA_MQTT_TOPIC_PREFIX` | pyaltherma    | no        | The prefix for all MQTT messages.                                            |
 | `PYALTHERMA_MQTT_ONETOPIC`     | None          | no        | If set, a single message will be sent, with all attributes as JSON.          |
 | `PYALTHERMA_POLL_TIMEOUT`      | 5             | no        | The inverval attributes should be polled from the Daikin API.                |
-| `PYALTHERMA_HOST`              | None          | yes       | The host of the Daikin controller. Could be a hostname or IP.                |
-| `PYALTHERMA_DEVICE_MOCK`       | None          | no        | If set, the internal mock will be used in place of pyaltherma's api.         |
+| `PYALTHERMA_HOST`              | None          | yes       | The host of the Daikin controller. Must be the IP.                           |
 
 Copy/paste template for environment file (e.g. `/etc/environment`):
 
@@ -35,7 +34,6 @@ PYALTHERMA_MQTT_TOPIC_PREFIX="pyaltherma"
 PYALTHERMA_MQTT_ONETOPIC="one"
 PYALTHERMA_POLL_TIMEOUT="5"
 PYALTHERMA_HOST="<replace_me>"
-PYALTHERMA_DEVICE_MOCK="<replace_me_or_delete_line>"
 ```
 
 The resulting topics would be:

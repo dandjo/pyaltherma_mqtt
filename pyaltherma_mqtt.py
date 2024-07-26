@@ -10,6 +10,7 @@ import time
 import paho.mqtt.client as mqtt
 from pyaltherma.comm import DaikinWSConnection
 from pyaltherma.controllers import AlthermaController
+from pyaltherma.const import ClimateControlMode
 
 
 logger = logging.getLogger(__name__)
@@ -27,44 +28,6 @@ MQTT_TOPIC_PREFIX_STATE = '%s/state' % MQTT_TOPIC_PREFIX
 MQTT_TOPIC_ONETOPIC = '%s/state/%s' % (MQTT_TOPIC_PREFIX, MQTT_ONETOPIC)
 POLL_TIMEOUT = os.environ.get('PYALTHERMA_POLL_TIMEOUT', 5)
 ALTHERMA_HOST = os.environ.get('PYALTHERMA_HOST')
-ALTHERMA_DEVICE_MOCK = os.environ.get('PYALTHERMA_DEVICE_MOCK')
-
-
-class AlthermaControllerMock():
-    def __getattr__(self, attr):
-        return {
-            'ws_connection': AlthermaControllerMock(),
-            'close': lambda: asyncio.sleep(0),
-            'get_current_state': lambda: asyncio.sleep(0),
-            'hot_water_tank': AlthermaControllerMock(),
-            'climate_control': AlthermaControllerMock(),
-            'is_turned_on': lambda: bool(random.randrange(2)),
-            'tank_temperature': random.randrange(30, 60, 1),
-            'target_temperature': random.randrange(35, 65, 5),
-            'powerful': bool(random.randrange(2)),
-            'indoor_temperature': random.randrange(22, 24, 1),
-            'climate_control_heating_configuration': random.randrange(1, 3, 1),
-            'climate_control_cooling_configuration': random.randrange(1, 2, 1),
-            'operation_mode': ['auto', 'cooling', 'heating', 'heating_day', 'heating_night'][random.randrange(0, 5, 1)],
-            'leaving_water_temperature_current': random.randrange(28, 35, 1),
-            'leaving_water_temperature_offset_heating': random.randrange(-5, 5, 1),
-            'leaving_water_temperature_offset_cooling': random.randrange(-5, 5, 1),
-            'leaving_water_temperature_offset_auto': random.randrange(-5, 5, 1),
-            'leaving_water_temperature_heating': random.randrange(25, 45, 1),
-            'leaving_water_temperature_cooling': random.randrange(16, 23, 1),
-            'leaving_water_temperature_auto': random.randrange(16, 45, 1),
-            'turn_on': lambda: None,
-            'turn_off': lambda: None,
-            'set_target_temperature': lambda x: None,
-            'set_powerful': lambda x: None,
-            'set_operation_mode': lambda x: None,
-            'set_leaving_water_temperature_offset_heating': lambda x: None,
-            'set_leaving_water_temperature_offset_cooling': lambda x: None,
-            'set_leaving_water_temperature_offset_auto': lambda x: None,
-            'set_leaving_water_temperature_heating': lambda x: None,
-            'set_leaving_water_temperature_cooling': lambda x: None,
-            'set_leaving_water_temperature_auto': lambda x: None,
-        }[attr]
 
 
 class AsyncioHelper:
@@ -124,10 +87,10 @@ class PyalthermaMessenger:
         msg = await self.future
         if msg.topic.startswith('%s/' % MQTT_TOPIC_PREFIX_SET):
             topic = msg.topic.replace('%s/' % MQTT_TOPIC_PREFIX_SET, '')
-            self.handle_message(topic, msg.payload.decode())
+            await self.handle_message(topic, msg.payload.decode())
         self.future = None
 
-    def notify(self, message):
+    def notify(self, msg):
         if self.future:
             self.future.set_result(msg)
 
@@ -135,63 +98,63 @@ class PyalthermaMessenger:
         if self.future and not self.future.done():
             self.future.set_exception(PyalthermaException(reason))
 
-    def handle_message(self, topic, payload):
+    async def handle_message(self, topic, payload):
         if topic == 'dhw_power':
             if payload.upper() == 'ON' or payload == '1':
-                self.altherma.hot_water_tank.turn_on()
-            if payload.upper() == 'off' or payload == '0':
-                self.altherma.hot_water_tank.turn_off()
+                await self.altherma.hot_water_tank.turn_on()
+            if payload.upper() == 'OFF' or payload == '0':
+                await self.altherma.hot_water_tank.turn_off()
         elif topic == 'dhw_target_temp':
-            self.altherma.hot_water_tank.set_target_temperature(float(payload))
+            await self.altherma.hot_water_tank.set_target_temperature(float(payload))
         elif topic == 'dhw_powerful':
             if payload.upper() == 'ON' or payload == '1':
-                self.altherma.hot_water_tank.set_powerful(True)
+                await self.altherma.hot_water_tank.set_powerful(True)
             if payload.upper() == 'OFF' or payload == '0':
-                self.altherma.hot_water_tank.set_powerful(False)
+                await self.altherma.hot_water_tank.set_powerful(False)
         elif topic == 'climate_control_power':
             if payload.upper() == 'ON' or payload == '1':
-                self.altherma.climate_control.turn_on()
+                await self.altherma.climate_control.turn_on()
             if payload.upper() == 'OFF' or payload == '0':
-                self.altherma.climate_control.turn_off()
+                await self.altherma.climate_control.turn_off()
         elif topic == 'climate_control_mode':
-            self.altherma.climate_control.set_operation_mode(payload)
+            await self.altherma.climate_control.set_operation_mode(ClimateControlMode(payload))
         elif topic == 'leaving_water_temp_offset_heating':
-            self.altherma.climate_control.set_leaving_water_temperature_offset_heating(round(float(payload)))
+            await self.altherma.climate_control.set_leaving_water_temperature_offset_heating(round(float(payload)))
         elif topic == 'leaving_water_temp_offset_cooling':
-            self.altherma.climate_control.set_leaving_water_temperature_offset_cooling(round(float(payload)))
+            await self.altherma.climate_control.set_leaving_water_temperature_offset_cooling(round(float(payload)))
         elif topic == 'leaving_water_temp_offset_auto':
-            self.altherma.climate_control.set_leaving_water_temperature_offset_auto(round(float(payload)))
+            await self.altherma.climate_control.set_leaving_water_temperature_offset_auto(round(float(payload)))
         elif topic == 'leaving_water_temp_heating':
-            self.altherma.climate_control.set_leaving_water_temperature_heating(round(float(payload)))
+            await self.altherma.climate_control.set_leaving_water_temperature_heating(round(float(payload)))
         elif topic == 'leaving_water_temp_cooling':
-            self.altherma.climate_control.set_leaving_water_temperature_cooling(round(float(payload)))
+            await self.altherma.climate_control.set_leaving_water_temperature_cooling(round(float(payload)))
         elif topic == 'leaving_water_temp_auto':
-            self.altherma.climate_control.set_leaving_water_temperature_auto(round(float(payload)))
+            await self.altherma.climate_control.set_leaving_water_temperature_auto(round(float(payload)))
 
     async def publish_messages(self):
         await self.altherma.get_current_state()
-        messages = {
-            'dhw_power': 'ON' if self.altherma.hot_water_tank.is_turned_on() else 'OFF',
-            'dhw_temp': str(self.altherma.hot_water_tank.tank_temperature),
-            'dhw_target_temp': str(self.altherma.hot_water_tank.target_temperature),
-            'dhw_powerful': 'ON' if self.altherma.hot_water_tank.powerful else 'OFF',
-            'indoor_temp': str(self.altherma.climate_control.indoor_temperature),
-            'climate_control_heating_config': self.altherma.climate_control.climate_control_heating_configuration,
-            'climate_control_cooling_config': self.altherma.climate_control.climate_control_cooling_configuration,
-            'climate_control_power': 'ON' if self.altherma.climate_control.is_turned_on() else 'OFF',
-            'climate_control_mode': str(self.altherma.climate_control.operation_mode),
-            'leaving_water_temp_current': str(self.altherma.climate_control.leaving_water_temperature_current),
-            'leaving_water_temp_offset_heating': str(self.altherma.climate_control.leaving_water_temperature_offset_heating),
-            'leaving_water_temp_offset_cooling': str(self.altherma.climate_control.leaving_water_temperature_offset_cooling),
-            'leaving_water_temp_offset_auto': str(self.altherma.climate_control.leaving_water_temperature_offset_auto),
-            'leaving_water_temp_heating': str(self.altherma.climate_control.leaving_water_temperature_heating),
-            'leaving_water_temp_cooling': str(self.altherma.climate_control.leaving_water_temperature_cooling),
-            'leaving_water_temp_auto': str(self.altherma.climate_control.leaving_water_temperature_auto),
+        msgs = {
+            'dhw_power': 'ON' if await self.altherma.hot_water_tank.is_turned_on else 'OFF',
+            'dhw_temp': str(await self.altherma.hot_water_tank.tank_temperature),
+            'dhw_target_temp': str(await self.altherma.hot_water_tank.target_temperature),
+            'dhw_powerful': 'ON' if await self.altherma.hot_water_tank.powerful else 'OFF',
+            'indoor_temp': str(await self.altherma.climate_control.indoor_temperature),
+            'climate_control_heating_config': str(self.altherma.climate_control.climate_control_heating_configuration.value),
+            'climate_control_cooling_config': str(self.altherma.climate_control.climate_control_cooling_configuration.value),
+            'climate_control_power': 'ON' if await self.altherma.climate_control.is_turned_on else 'OFF',
+            'climate_control_mode': str((await self.altherma.climate_control.operation_mode).value),
+            'leaving_water_temp_current': str(await self.altherma.climate_control.leaving_water_temperature_current),
+            'leaving_water_temp_offset_heating': str(await self.altherma.climate_control.leaving_water_temperature_offset_heating),
+            'leaving_water_temp_offset_cooling': str(await self.altherma.climate_control.leaving_water_temperature_offset_cooling),
+            'leaving_water_temp_offset_auto': str(await self.altherma.climate_control.leaving_water_temperature_offset_auto),
+            'leaving_water_temp_heating': str(await self.altherma.climate_control.leaving_water_temperature_heating),
+            'leaving_water_temp_cooling': str(await self.altherma.climate_control.leaving_water_temperature_cooling),
+            'leaving_water_temp_auto': str(await self.altherma.climate_control.leaving_water_temperature_auto),
         }
         if MQTT_ONETOPIC:
-            self.mqttc.publish(MQTT_TOPIC_ONETOPIC, json.dumps(messages))
+            self.mqttc.publish(MQTT_TOPIC_ONETOPIC, json.dumps(msgs))
         else:
-            for topic, payload in messages.items():
+            for topic, payload in msgs.items():
                 self.mqttc.publish('%s/%s' % (MQTT_TOPIC_PREFIX_STATE, topic), payload)
 
 

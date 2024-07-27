@@ -221,7 +221,7 @@ class PyalthermaMqtt:
         self.mqttc.socket().setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 2048)
         await self.connected_future
         # connect to daikin api
-        with aiohttp.ClientSession() as altherma_session:
+        async with aiohttp.ClientSession() as altherma_session:
             self.altherma = AlthermaController(DaikinWSConnection(altherma_session, ALTHERMA_HOST))
             await self.altherma.discover_units()
             self.messenger = PyalthermaMessenger(self.loop, self.mqttc, self.altherma)

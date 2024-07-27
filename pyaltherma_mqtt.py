@@ -209,7 +209,7 @@ class PyalthermaMqtt:
     async def main(self):
         self.connected_future = self.loop.create_future()
         self.disconnected_future = self.loop.create_future()
-        # connecto to mqtt broker
+        # connect to mqtt broker
         self.mqttc = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id=MQTT_CLIENT_ID)
         self.mqttc.on_connect = self.on_connect
         self.mqttc.on_message = self.on_message
@@ -221,17 +221,15 @@ class PyalthermaMqtt:
         self.mqttc.socket().setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 2048)
         await self.connected_future
         # connect to daikin api
-        self.altherma = AlthermaController(DaikinWSConnection(aiohttp.ClientSession(), ALTHERMA_HOST))
-        await self.altherma.discover_units()
-        self.messenger = PyalthermaMessenger(self.loop, self.mqttc, self.altherma)
-        # message publisher
-        self.publisher = PyalthermaPublisher(self.loop, self.messenger)
-        self.publisher.start()
-        # messenger loop
-        await self.messenger.loop()
-        # graceful shutdown
-        self.publisher.stop()
-        await self.altherma.ws_connection.close()
+        with aiohttp.ClientSession() as altherma_session:
+            self.altherma = AlthermaController(DaikinWSConnection(altherma_session, ALTHERMA_HOST))
+            await self.altherma.discover_units()
+            self.messenger = PyalthermaMessenger(self.loop, self.mqttc, self.altherma)
+            self.publisher = PyalthermaPublisher(self.loop, self.messenger)
+            self.publisher.start()
+            await self.messenger.loop()
+            self.publisher.stop()
+        # graceful disconnects
         self.mqttc.disconnect()
         await self.disconnected_future
 

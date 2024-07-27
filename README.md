@@ -20,7 +20,7 @@ Before you start the script as a service, take a look at the configurable enviro
 | `PYALTHERMA_MQTT_PASSWORD`     | None          | no        | The password for the MQTT broker. Mandatory if username is set.              |
 | `PYALTHERMA_MQTT_TOPIC_PREFIX` | pyaltherma    | no        | The prefix for all MQTT messages.                                            |
 | `PYALTHERMA_MQTT_ONETOPIC`     | None          | no        | If set, a single message will be sent, with all attributes as JSON.          |
-| `PYALTHERMA_POLL_TIMEOUT`      | 5             | no        | The inverval attributes should be polled from the Daikin API.                |
+| `PYALTHERMA_POLL_INTERVAL`     | 5             | no        | The inverval attributes should be polled from the Daikin API.                |
 | `PYALTHERMA_HOST`              | None          | yes       | The host of the Daikin controller. Must be the IP.                           |
 
 Copy/paste template for environment file (e.g. `/etc/environment`):
@@ -32,7 +32,7 @@ PYALTHERMA_MQTT_USERNAME="<replace_me_or_delete_line>"
 PYALTHERMA_MQTT_PASSWORD="<replace_me_or_delete_line>"
 PYALTHERMA_MQTT_TOPIC_PREFIX="pyaltherma"
 PYALTHERMA_MQTT_ONETOPIC="one"
-PYALTHERMA_POLL_TIMEOUT="5"
+PYALTHERMA_POLL_INTERVAL="5"
 PYALTHERMA_HOST="<replace_me>"
 ```
 

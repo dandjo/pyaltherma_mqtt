@@ -26,7 +26,7 @@ MQTT_ONETOPIC = os.environ.get('PYALTHERMA_MQTT_ONETOPIC')
 MQTT_TOPIC_PREFIX_SET = '%s/set' % MQTT_TOPIC_PREFIX
 MQTT_TOPIC_PREFIX_STATE = '%s/state' % MQTT_TOPIC_PREFIX
 MQTT_TOPIC_ONETOPIC = '%s/state/%s' % (MQTT_TOPIC_PREFIX, MQTT_ONETOPIC)
-POLL_TIMEOUT = os.environ.get('PYALTHERMA_POLL_TIMEOUT', 5)
+POLL_INTERVAL = os.environ.get('PYALTHERMA_POLL_INTERVAL', 5)
 ALTHERMA_HOST = os.environ.get('PYALTHERMA_HOST')
 
 
@@ -69,6 +69,7 @@ class PyalthermaMessenger:
     def __init__(self, loop, mqttc, altherma):
         self._loop = loop
         self.mqttc = mqttc
+        self.mqttc.subscribe('%s/#' % MQTT_TOPIC_PREFIX_SET)
         self.altherma = altherma
         self.future = None
 
@@ -169,7 +170,7 @@ class PyalthermaPublisher:
             try:
                 start_time = time.time()
                 await self.messenger.publish_messages()
-                await asyncio.sleep(start_time - time.time() + int(POLL_TIMEOUT))
+                await asyncio.sleep(start_time - time.time() + int(POLL_INTERVAL))
             except asyncio.CancelledError:
                 break
 
@@ -219,7 +220,6 @@ class PyalthermaMqtt:
         self.mqttc.connect(MQTT_HOST, port=MQTT_PORT, keepalive=60)
         self.mqttc.socket().setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 2048)
         await self.connected_future
-        self.mqttc.subscribe('%s/#' % MQTT_TOPIC_PREFIX_SET)
         # connect to daikin api
         self.altherma = AlthermaController(DaikinWSConnection(aiohttp.ClientSession(), ALTHERMA_HOST))
         await self.altherma.discover_units()

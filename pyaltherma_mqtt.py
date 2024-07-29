@@ -88,7 +88,7 @@ class PyalthermaMessenger:
         msg = await self.future
         if msg.topic.startswith('%s/' % MQTT_TOPIC_PREFIX_SET):
             topic = msg.topic.replace('%s/' % MQTT_TOPIC_PREFIX_SET, '')
-            await self.handle_message(topic, msg.payload.decode())
+            self._loop.create_task(self.handle_message(topic, msg.payload.decode()))
         self.future = None
 
     def notify(self, msg):

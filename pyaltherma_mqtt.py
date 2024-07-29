@@ -100,37 +100,47 @@ class PyalthermaMessenger:
             self.future.set_exception(PyalthermaException(reason))
 
     async def handle_message(self, topic, payload):
+        await self.altherma.get_current_state()
         if topic == 'dhw_power':
             if payload.upper() == 'ON' or payload == '1':
                 await self.altherma.hot_water_tank.turn_on()
             if payload.upper() == 'OFF' or payload == '0':
                 await self.altherma.hot_water_tank.turn_off()
         elif topic == 'dhw_target_temp':
-            await self.altherma.hot_water_tank.set_target_temperature(float(payload))
+            if await self.altherma.hot_water_tank.is_turned_on:
+                await self.altherma.hot_water_tank.set_target_temperature(float(payload))
         elif topic == 'dhw_powerful':
-            if payload.upper() == 'ON' or payload == '1':
-                await self.altherma.hot_water_tank.set_powerful(True)
-            if payload.upper() == 'OFF' or payload == '0':
-                await self.altherma.hot_water_tank.set_powerful(False)
+            if await self.altherma.hot_water_tank.is_turned_on:
+                if payload.upper() == 'ON' or payload == '1':
+                    await self.altherma.hot_water_tank.set_powerful(True)
+                if payload.upper() == 'OFF' or payload == '0':
+                    await self.altherma.hot_water_tank.set_powerful(False)
         elif topic == 'climate_control_power':
             if payload.upper() == 'ON' or payload == '1':
                 await self.altherma.climate_control.turn_on()
             if payload.upper() == 'OFF' or payload == '0':
                 await self.altherma.climate_control.turn_off()
         elif topic == 'climate_control_mode':
-            await self.altherma.climate_control.set_operation_mode(ClimateControlMode(payload))
+            if await self.altherma.climate_control.is_turned_on:
+                await self.altherma.climate_control.set_operation_mode(ClimateControlMode(payload))
         elif topic == 'leaving_water_temp_offset_heating':
-            await self.altherma.climate_control.set_leaving_water_temperature_offset_heating(round(float(payload)))
+            if await self.altherma.climate_control.is_turned_on:
+                await self.altherma.climate_control.set_leaving_water_temperature_offset_heating(round(float(payload)))
         elif topic == 'leaving_water_temp_offset_cooling':
-            await self.altherma.climate_control.set_leaving_water_temperature_offset_cooling(round(float(payload)))
+            if await self.altherma.climate_control.is_turned_on:
+                await self.altherma.climate_control.set_leaving_water_temperature_offset_cooling(round(float(payload)))
         elif topic == 'leaving_water_temp_offset_auto':
-            await self.altherma.climate_control.set_leaving_water_temperature_offset_auto(round(float(payload)))
+            if await self.altherma.climate_control.is_turned_on:
+                await self.altherma.climate_control.set_leaving_water_temperature_offset_auto(round(float(payload)))
         elif topic == 'leaving_water_temp_heating':
-            await self.altherma.climate_control.set_leaving_water_temperature_heating(round(float(payload)))
+            if await self.altherma.climate_control.is_turned_on:
+                await self.altherma.climate_control.set_leaving_water_temperature_heating(round(float(payload)))
         elif topic == 'leaving_water_temp_cooling':
-            await self.altherma.climate_control.set_leaving_water_temperature_cooling(round(float(payload)))
+            if await self.altherma.climate_control.is_turned_on:
+                await self.altherma.climate_control.set_leaving_water_temperature_cooling(round(float(payload)))
         elif topic == 'leaving_water_temp_auto':
-            await self.altherma.climate_control.set_leaving_water_temperature_auto(round(float(payload)))
+            if await self.altherma.climate_control.is_turned_on:
+                await self.altherma.climate_control.set_leaving_water_temperature_auto(round(float(payload)))
 
     async def publish_messages(self):
         await self.altherma.get_current_state()

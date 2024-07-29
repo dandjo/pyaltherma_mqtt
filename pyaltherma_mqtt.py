@@ -121,26 +121,19 @@ class PyalthermaMessenger:
             if payload.upper() == 'OFF' or payload == '0':
                 await self.altherma.climate_control.turn_off()
         elif topic == 'climate_control_mode':
-            if await self.altherma.climate_control.is_turned_on:
-                await self.altherma.climate_control.set_operation_mode(ClimateControlMode(payload))
+            await self.altherma.climate_control.set_operation_mode(ClimateControlMode(payload))
         elif topic == 'leaving_water_temp_offset_heating':
-            if await self.altherma.climate_control.is_turned_on:
-                await self.altherma.climate_control.set_leaving_water_temperature_offset_heating(round(float(payload)))
+            await self.altherma.climate_control.set_leaving_water_temperature_offset_heating(round(float(payload)))
         elif topic == 'leaving_water_temp_offset_cooling':
-            if await self.altherma.climate_control.is_turned_on:
-                await self.altherma.climate_control.set_leaving_water_temperature_offset_cooling(round(float(payload)))
+            await self.altherma.climate_control.set_leaving_water_temperature_offset_cooling(round(float(payload)))
         elif topic == 'leaving_water_temp_offset_auto':
-            if await self.altherma.climate_control.is_turned_on:
-                await self.altherma.climate_control.set_leaving_water_temperature_offset_auto(round(float(payload)))
+            await self.altherma.climate_control.set_leaving_water_temperature_offset_auto(round(float(payload)))
         elif topic == 'leaving_water_temp_heating':
-            if await self.altherma.climate_control.is_turned_on:
-                await self.altherma.climate_control.set_leaving_water_temperature_heating(round(float(payload)))
+            await self.altherma.climate_control.set_leaving_water_temperature_heating(round(float(payload)))
         elif topic == 'leaving_water_temp_cooling':
-            if await self.altherma.climate_control.is_turned_on:
-                await self.altherma.climate_control.set_leaving_water_temperature_cooling(round(float(payload)))
+            await self.altherma.climate_control.set_leaving_water_temperature_cooling(round(float(payload)))
         elif topic == 'leaving_water_temp_auto':
-            if await self.altherma.climate_control.is_turned_on:
-                await self.altherma.climate_control.set_leaving_water_temperature_auto(round(float(payload)))
+            await self.altherma.climate_control.set_leaving_water_temperature_auto(round(float(payload)))
 
     async def publish_messages(self):
         await self.altherma.get_current_state()

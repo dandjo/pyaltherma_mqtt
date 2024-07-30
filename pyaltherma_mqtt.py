@@ -11,6 +11,7 @@ import paho.mqtt.client as mqtt
 from pyaltherma.comm import DaikinWSConnection
 from pyaltherma.controllers import AlthermaController
 from pyaltherma.const import ClimateControlMode
+from pyaltherma.errors import AlthermaException
 
 
 logger = logging.getLogger(__name__)
@@ -61,11 +62,7 @@ class AsyncioHelper:
                 break
 
 
-class PyalthermaException(Exception):
-    pass
-
-
-class PyalthermaMessenger:
+class AlthermaMessenger:
     def __init__(self, loop, mqttc, altherma):
         self._loop = loop
         self.mqttc = mqttc
@@ -79,7 +76,7 @@ class PyalthermaMessenger:
                 await self.await_message()
             except asyncio.CancelledError:
                 break
-            except PyalthermaException as e:
+            except AlthermaException as e:
                 logger.warning('Messenger loop stopped: %s' % e)
                 break
 
@@ -97,10 +94,9 @@ class PyalthermaMessenger:
 
     def stop(self, reason=None):
         if self.future and not self.future.done():
-            self.future.set_exception(PyalthermaException(reason))
+            self.future.cancel()
 
     async def handle_message(self, topic, payload):
-        await self.altherma.get_current_state()
         if topic == 'dhw_power':
             if payload.upper() == 'ON' or payload == '1':
                 await self.altherma.hot_water_tank.turn_on()
@@ -136,7 +132,6 @@ class PyalthermaMessenger:
             await self.altherma.climate_control.set_leaving_water_temperature_auto(round(float(payload)))
 
     async def publish_messages(self):
-        await self.altherma.get_current_state()
         msgs = {
             'dhw_power': 'ON' if await self.altherma.hot_water_tank.is_turned_on else 'OFF',
             'dhw_temp': str(await self.altherma.hot_water_tank.tank_temperature),
@@ -162,7 +157,7 @@ class PyalthermaMessenger:
                 self.mqttc.publish('%s/%s' % (MQTT_TOPIC_PREFIX_STATE, topic), payload)
 
 
-class PyalthermaPublisher:
+class AlthermaPublisher:
     def __init__(self, loop, messenger):
         self._loop = loop
         self.messenger = messenger
@@ -175,6 +170,9 @@ class PyalthermaPublisher:
                 await self.messenger.publish_messages()
                 await asyncio.sleep(start_time - time.time() + int(POLL_INTERVAL))
             except asyncio.CancelledError:
+                break
+            except AlthermaException as e:
+                logger.warning('Messenger loop stopped: %s' % e)
                 break
 
     def _on_task_done(self, task):
@@ -189,7 +187,7 @@ class PyalthermaPublisher:
         self.task.cancel()
 
 
-class PyalthermaMqtt:
+class AlthermaMqtt:
     def __init__(self, loop):
         self.loop = loop
         for sig in (signal.SIGINT, signal.SIGTERM):
@@ -227,8 +225,8 @@ class PyalthermaMqtt:
         async with aiohttp.ClientSession() as altherma_session:
             self.altherma = AlthermaController(DaikinWSConnection(altherma_session, ALTHERMA_HOST))
             await self.altherma.discover_units()
-            self.messenger = PyalthermaMessenger(self.loop, self.mqttc, self.altherma)
-            self.publisher = PyalthermaPublisher(self.loop, self.messenger)
+            self.messenger = AlthermaMessenger(self.loop, self.mqttc, self.altherma)
+            self.publisher = AlthermaPublisher(self.loop, self.messenger)
             self.publisher.start()
             await self.messenger.loop()
             self.publisher.stop()
@@ -238,5 +236,5 @@ class PyalthermaMqtt:
 
 
 loop = asyncio.new_event_loop()
-loop.run_until_complete(PyalthermaMqtt(loop).main())
+loop.run_until_complete(AlthermaMqtt(loop).main())
 loop.close()

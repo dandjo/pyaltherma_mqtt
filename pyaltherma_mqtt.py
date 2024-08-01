@@ -216,7 +216,7 @@ class AlthermaMqtt:
         self.mqttc.on_disconnect = self.on_disconnect
         if MQTT_USERNAME:
             self.mqttc.username_pw_set(MQTT_USERNAME, MQTT_PASSWORD)
-        AsyncioHelper(self.event_loop@, self.mqttc)
+        AsyncioHelper(self.event_loop, self.mqttc)
         self.mqttc.connect(MQTT_HOST, port=MQTT_PORT, keepalive=60)
         self.mqttc.socket().setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 2048)
         await self.connected_future

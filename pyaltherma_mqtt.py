@@ -32,8 +32,8 @@ ALTHERMA_HOST = os.environ.get('PYALTHERMA_HOST')
 
 
 class AsyncioHelper:
-    def __init__(self, loop, mqttc):
-        self.loop = loop
+    def __init__(self, event_loop, mqttc):
+        self.event_loop = event_loop
         self.mqttc = mqttc
         self.mqttc.on_socket_open = self.on_socket_open
         self.mqttc.on_socket_close = self.on_socket_close
@@ -41,18 +41,18 @@ class AsyncioHelper:
         self.mqttc.on_socket_unregister_write = self.on_socket_unregister_write
 
     def on_socket_open(self, mqttc, userdata, sock):
-        self.loop.add_reader(sock, lambda: mqttc.loop_read())
-        self.misc = self.loop.create_task(self.misc_loop())
+        self.event_loop.add_reader(sock, lambda: mqttc.loop_read())
+        self.misc = self.event_loop.create_task(self.misc_loop())
 
     def on_socket_close(self, mqttc, userdata, sock):
-        self.loop.remove_reader(sock)
+        self.event_loop.remove_reader(sock)
         self.misc.cancel()
 
     def on_socket_register_write(self, mqttc, userdata, sock):
-        self.loop.add_writer(sock, lambda: mqttc.loop_write())
+        self.event_loop.add_writer(sock, lambda: mqttc.loop_write())
 
     def on_socket_unregister_write(self, mqttc, userdata, sock):
-        self.loop.remove_writer(sock)
+        self.event_loop.remove_writer(sock)
 
     async def misc_loop(self):
         while self.mqttc.loop_misc() == mqtt.MQTT_ERR_SUCCESS:
@@ -63,8 +63,8 @@ class AsyncioHelper:
 
 
 class AlthermaMessenger:
-    def __init__(self, loop, mqttc, altherma):
-        self._loop = loop
+    def __init__(self, event_loop, mqttc, altherma):
+        self.event_loop = event_loop
         self.mqttc = mqttc
         self.mqttc.subscribe('%s/#' % MQTT_TOPIC_PREFIX_SET)
         self.altherma = altherma
@@ -81,11 +81,11 @@ class AlthermaMessenger:
                 break
 
     async def await_message(self):
-        self.future = self._loop.create_future()
+        self.future = self.event_loop.create_future()
         msg = await self.future
         if msg.topic.startswith('%s/' % MQTT_TOPIC_PREFIX_SET):
             topic = msg.topic.replace('%s/' % MQTT_TOPIC_PREFIX_SET, '')
-            self._loop.create_task(self.handle_message(topic, msg.payload.decode()))
+            self.event_loop.create_task(self.handle_message(topic, msg.payload.decode()))
         self.future = None
 
     def notify(self, msg):
@@ -158,8 +158,7 @@ class AlthermaMessenger:
 
 
 class AlthermaPublisher:
-    def __init__(self, loop, messenger):
-        self._loop = loop
+    def __init__(self, messenger):
         self.messenger = messenger
         self.task = None
 
@@ -175,23 +174,23 @@ class AlthermaPublisher:
                 logger.warning('Messenger loop stopped: %s' % e)
                 break
 
-    def _on_task_done(self, task):
+    def on_task_done(self, task):
         if not self.messenger.future.done():
             self.messenger.future.set_exception(task.exception() or asyncio.CancelledError)
 
     def start(self):
-        self.task = self._loop.create_task(self.loop())
-        self.task.add_done_callback(self._on_task_done)
+        self.task = self.messenger.event_loop.create_task(self.loop())
+        self.task.add_done_callback(self.on_task_done)
 
     def stop(self, reason=None):
         self.task.cancel()
 
 
 class AlthermaMqtt:
-    def __init__(self, loop):
-        self.loop = loop
+    def __init__(self, event_loop):
+        self.event_loop = event_loop
         for sig in (signal.SIGINT, signal.SIGTERM):
-            loop.add_signal_handler(sig, lambda: [t.cancel() for t in asyncio.all_tasks(loop=loop)])
+            event_loop.add_signal_handler(sig, lambda: [t.cancel() for t in asyncio.all_tasks(loop=event_loop)])
 
     def on_connect(self, client, userdata, connect_flags, reason_code, properties):
         self.connected_future.set_result(reason_code)
@@ -208,8 +207,8 @@ class AlthermaMqtt:
             self.messenger.stop(reason=reason_code)
 
     async def main(self):
-        self.connected_future = self.loop.create_future()
-        self.disconnected_future = self.loop.create_future()
+        self.connected_future = self.event_loop.create_future()
+        self.disconnected_future = self.event_loop.create_future()
         # connect to mqtt broker
         self.mqttc = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id=MQTT_CLIENT_ID)
         self.mqttc.on_connect = self.on_connect
@@ -217,7 +216,7 @@ class AlthermaMqtt:
         self.mqttc.on_disconnect = self.on_disconnect
         if MQTT_USERNAME:
             self.mqttc.username_pw_set(MQTT_USERNAME, MQTT_PASSWORD)
-        AsyncioHelper(self.loop, self.mqttc)
+        AsyncioHelper(self.event_loop@, self.mqttc)
         self.mqttc.connect(MQTT_HOST, port=MQTT_PORT, keepalive=60)
         self.mqttc.socket().setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 2048)
         await self.connected_future
@@ -225,8 +224,8 @@ class AlthermaMqtt:
         async with aiohttp.ClientSession() as altherma_session:
             self.altherma = AlthermaController(DaikinWSConnection(altherma_session, ALTHERMA_HOST))
             await self.altherma.discover_units()
-            self.messenger = AlthermaMessenger(self.loop, self.mqttc, self.altherma)
-            self.publisher = AlthermaPublisher(self.loop, self.messenger)
+            self.messenger = AlthermaMessenger(self.event_loop, self.mqttc, self.altherma)
+            self.publisher = AlthermaPublisher(self.messenger)
             self.publisher.start()
             await self.messenger.loop()
             self.publisher.stop()
@@ -235,6 +234,6 @@ class AlthermaMqtt:
         await self.disconnected_future
 
 
-loop = asyncio.new_event_loop()
-loop.run_until_complete(AlthermaMqtt(loop).main())
-loop.close()
+event_loop = asyncio.new_event_loop()
+event_loop.run_until_complete(AlthermaMqtt(event_loop).main())
+event_loop.close()

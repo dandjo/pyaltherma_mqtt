@@ -72,7 +72,7 @@ $ python3 /path/to/pyaltherma_mqtt.py
 
 ## Implemented properties
 
-| Attribute                         | Description                                  | Read | Write | Values                                                       | Limitations                                                                                      |
+| Property                          | Description                                  | Read | Write | Values                                                       | Limitations                                                                                      |
 |-----------------------------------|----------------------------------------------|------|-------|--------------------------------------------------------------|--------------------------------------------------------------------------------------------------|
 | dhw_power                         | Domestic hot water power                     | ✓    | ✓     | "ON", "OFF"                                                  |                                                                                                  |
 | dhw_temp                          | Domestic hot water temperature               | ✓    |       |                                                              |                                                                                                  |

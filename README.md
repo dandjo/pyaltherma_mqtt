@@ -19,8 +19,8 @@ Before you start the script as a service, take a look at the configurable enviro
 | `PYALTHERMA_MQTT_USERNAME`     | None          | no        | The username for the MQTT broker. If omitted, the password will not be used. |
 | `PYALTHERMA_MQTT_PASSWORD`     | None          | no        | The password for the MQTT broker. Mandatory if username is set.              |
 | `PYALTHERMA_MQTT_TOPIC_PREFIX` | pyaltherma    | no        | The prefix for all MQTT messages.                                            |
-| `PYALTHERMA_MQTT_ONETOPIC`     | None          | no        | If set, a single message will be sent, with all attributes as JSON.          |
-| `PYALTHERMA_POLL_INTERVAL`     | 5             | no        | The inverval attributes should be polled from the Daikin API.                |
+| `PYALTHERMA_MQTT_ONETOPIC`     | None          | no        | If set, a single message will be sent, with all properties as JSON.          |
+| `PYALTHERMA_POLL_INTERVAL`     | 5             | no        | The inverval properties should be polled from the Daikin API.                |
 | `PYALTHERMA_HOST`              | None          | yes       | The host of the Daikin controller. Must be the IP.                           |
 
 Copy/paste template for environment file (e.g. `/etc/environment`):
@@ -38,10 +38,10 @@ PYALTHERMA_HOST="<replace_me>"
 
 The resulting topics would be:
 
-| Type  | Topic                                              |
-|-------|----------------------------------------------------|
-| Read  | `{PYALTHERMA_MQTT_TOPIC_PREFIX}/state/{attribute}` |
-| Write | `{PYALTHERMA_MQTT_TOPIC_PREFIX}/set/{attribute}`   |
+| Type  | Topic                                             |
+|-------|---------------------------------------------------|
+| Read  | `{PYALTHERMA_MQTT_TOPIC_PREFIX}/state/{property}` |
+| Write | `{PYALTHERMA_MQTT_TOPIC_PREFIX}/set/{property}`   |
 
 Examples with default configuration:
 
@@ -70,7 +70,7 @@ Or if not installed as module:
 $ python3 /path/to/pyaltherma_mqtt.py
 ```
 
-## Implemented attributes
+## Implemented properties
 
 | Attribute                         | Description                                  | Read | Write | Values                                                       | Limitations                                                                                      |
 |-----------------------------------|----------------------------------------------|------|-------|--------------------------------------------------------------|--------------------------------------------------------------------------------------------------|

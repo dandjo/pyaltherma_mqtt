@@ -106,6 +106,9 @@ class AlthermaMessenger:
         elif topic == 'dhw_target_temp':
             if await self.altherma.hot_water_tank.is_turned_on:
                 await self.altherma.hot_water_tank.set_target_temperature(float(payload))
+        elif topic == 'dhw_temp_heating':
+            if await self.altherma.hot_water_tank.is_turned_on:
+                await self.altherma.hot_water_tank.set_domestic_hot_water_temperature_heating(float(payload))
         elif topic == 'dhw_powerful':
             if await self.altherma.hot_water_tank.is_turned_on:
                 if payload.upper() == 'ON' or payload == '1':
@@ -144,6 +147,7 @@ class AlthermaMessenger:
             self.publish_task(self.altherma.hot_water_tank.is_turned_on, lambda v: 'ON' if v else 'OFF', msgs, 'dhw_power'),
             self.publish_task(self.altherma.hot_water_tank.tank_temperature, lambda v: str(v), msgs, 'dhw_temp'),
             self.publish_task(self.altherma.hot_water_tank.target_temperature, lambda v: str(v), msgs, 'dhw_target_temp'),
+            self.publish_task(self.altherma.hot_water_tank.domestic_hot_water_temperature_heating, lambda v: str(v), msgs, 'dhw_temp_heating'),
             self.publish_task(self.altherma.hot_water_tank.powerful, lambda v: 'ON' if v else 'OFF', msgs, 'dhw_powerful'),
             self.publish_task(self.altherma.climate_control.indoor_temperature, lambda v: str(v), msgs, 'indoor_temp'),
             self.publish_task(self.altherma.climate_control.outdoor_temperature, lambda v: str(v), msgs, 'outdoor_temp'),

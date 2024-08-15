@@ -105,10 +105,10 @@ class AlthermaMessenger:
                 await self.altherma.hot_water_tank.turn_off()
         elif topic == 'dhw_target_temp':
             if await self.altherma.hot_water_tank.is_turned_on:
-                await self.altherma.hot_water_tank.set_target_temperature(float(payload))
+                await self.altherma.hot_water_tank.set_target_temperature(round(float(payload)))
         elif topic == 'dhw_temp_heating':
             if await self.altherma.hot_water_tank.is_turned_on:
-                await self.altherma.hot_water_tank.set_domestic_hot_water_temperature_heating(float(payload))
+                await self.altherma.hot_water_tank.set_domestic_hot_water_temperature_heating(round(float(payload)))
         elif topic == 'dhw_powerful':
             if await self.altherma.hot_water_tank.is_turned_on:
                 if payload.upper() == 'ON' or payload == '1':
@@ -126,14 +126,10 @@ class AlthermaMessenger:
             await self.altherma.climate_control.set_leaving_water_temperature_offset_heating(round(float(payload)))
         elif topic == 'leaving_water_temp_offset_cooling':
             await self.altherma.climate_control.set_leaving_water_temperature_offset_cooling(round(float(payload)))
-        elif topic == 'leaving_water_temp_offset_auto':
-            await self.altherma.climate_control.set_leaving_water_temperature_offset_auto(round(float(payload)))
         elif topic == 'leaving_water_temp_heating':
             await self.altherma.climate_control.set_leaving_water_temperature_heating(round(float(payload)))
         elif topic == 'leaving_water_temp_cooling':
             await self.altherma.climate_control.set_leaving_water_temperature_cooling(round(float(payload)))
-        elif topic == 'leaving_water_temp_auto':
-            await self.altherma.climate_control.set_leaving_water_temperature_auto(round(float(payload)))
 
     async def publish_coro(self, value, callback, output, prop):
         output[prop] = callback(await value if inspect.isawaitable(value) else value)
@@ -145,23 +141,23 @@ class AlthermaMessenger:
         msgs = {}
         await asyncio.wait([
             self.publish_task(self.altherma.hot_water_tank.is_turned_on, lambda v: 'ON' if v else 'OFF', msgs, 'dhw_power'),
-            self.publish_task(self.altherma.hot_water_tank.tank_temperature, lambda v: str(v), msgs, 'dhw_temp'),
-            self.publish_task(self.altherma.hot_water_tank.target_temperature, lambda v: str(v), msgs, 'dhw_target_temp'),
-            self.publish_task(self.altherma.hot_water_tank.domestic_hot_water_temperature_heating, lambda v: str(v), msgs, 'dhw_temp_heating'),
+            self.publish_task(self.altherma.hot_water_tank.tank_temperature, lambda v: str(round(v)), msgs, 'dhw_temp'),
+            self.publish_task(self.altherma.hot_water_tank.target_temperature, lambda v: str(round(v)), msgs, 'dhw_target_temp'),
+            self.publish_task(self.altherma.hot_water_tank.domestic_hot_water_temperature_heating, lambda v: str(round(v)), msgs, 'dhw_temp_heating'),
             self.publish_task(self.altherma.hot_water_tank.powerful, lambda v: 'ON' if v else 'OFF', msgs, 'dhw_powerful'),
-            self.publish_task(self.altherma.climate_control.indoor_temperature, lambda v: str(v), msgs, 'indoor_temp'),
-            self.publish_task(self.altherma.climate_control.outdoor_temperature, lambda v: str(v), msgs, 'outdoor_temp'),
+            self.publish_task(self.altherma.climate_control.indoor_temperature, lambda v: str(round(v, 1)), msgs, 'indoor_temp'),
+            self.publish_task(self.altherma.climate_control.outdoor_temperature, lambda v: str(round(v)), msgs, 'outdoor_temp'),
             self.publish_task(self.altherma.climate_control.climate_control_heating_configuration, lambda v: str(v.value), msgs, 'climate_control_heating_config'),
             self.publish_task(self.altherma.climate_control.climate_control_cooling_configuration, lambda v: str(v.value), msgs, 'climate_control_cooling_config'),
             self.publish_task(self.altherma.climate_control.is_turned_on, lambda v: 'ON' if v else 'OFF', msgs, 'climate_control_power'),
             self.publish_task(self.altherma.climate_control.operation_mode, lambda v: str(v.value), msgs, 'climate_control_mode'),
             self.publish_task(self.altherma.climate_control.leaving_water_temperature_current, lambda v: str(v), msgs, 'leaving_water_temp_current'),
-            self.publish_task(self.altherma.climate_control.leaving_water_temperature_offset_heating, lambda v: str(v), msgs, 'leaving_water_temp_offset_heating'),
-            self.publish_task(self.altherma.climate_control.leaving_water_temperature_offset_cooling, lambda v: str(v), msgs, 'leaving_water_temp_offset_cooling'),
-            self.publish_task(self.altherma.climate_control.leaving_water_temperature_offset_auto, lambda v: str(v), msgs, 'leaving_water_temp_offset_auto'),
-            self.publish_task(self.altherma.climate_control.leaving_water_temperature_heating, lambda v: str(v), msgs, 'leaving_water_temp_heating'),
-            self.publish_task(self.altherma.climate_control.leaving_water_temperature_cooling, lambda v: str(v), msgs, 'leaving_water_temp_cooling'),
-            self.publish_task(self.altherma.climate_control.leaving_water_temperature_auto, lambda v: str(v), msgs, 'leaving_water_temp_auto'),
+            self.publish_task(self.altherma.climate_control.leaving_water_temperature_offset_heating, lambda v: str(round(v)), msgs, 'leaving_water_temp_offset_heating'),
+            self.publish_task(self.altherma.climate_control.leaving_water_temperature_offset_cooling, lambda v: str(round(v)), msgs, 'leaving_water_temp_offset_cooling'),
+            self.publish_task(self.altherma.climate_control.leaving_water_temperature_offset_auto, lambda v: str(round(v)), msgs, 'leaving_water_temp_offset_auto'),
+            self.publish_task(self.altherma.climate_control.leaving_water_temperature_heating, lambda v: str(round(v)), msgs, 'leaving_water_temp_heating'),
+            self.publish_task(self.altherma.climate_control.leaving_water_temperature_cooling, lambda v: str(round(v)), msgs, 'leaving_water_temp_cooling'),
+            self.publish_task(self.altherma.climate_control.leaving_water_temperature_auto, lambda v: str(round(v)), msgs, 'leaving_water_temp_auto'),
         ])
         if MQTT_ONETOPIC:
             self.mqttc.publish(MQTT_TOPIC_ONETOPIC, json.dumps(msgs))

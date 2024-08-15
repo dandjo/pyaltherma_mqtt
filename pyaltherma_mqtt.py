@@ -126,6 +126,8 @@ class AlthermaMessenger:
             await self.altherma.climate_control.set_leaving_water_temperature_offset_heating(round(float(payload)))
         elif topic == 'leaving_water_temp_offset_cooling':
             await self.altherma.climate_control.set_leaving_water_temperature_offset_cooling(round(float(payload)))
+        elif topic == 'leaving_water_temp_offset_auto':
+            await self.altherma.climate_control.set_leaving_water_temperature_offset_auto(round(float(payload)))
         elif topic == 'leaving_water_temp_heating':
             await self.altherma.climate_control.set_leaving_water_temperature_heating(round(float(payload)))
         elif topic == 'leaving_water_temp_cooling':

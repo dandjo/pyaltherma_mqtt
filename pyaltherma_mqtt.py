@@ -134,7 +134,13 @@ class AlthermaMessenger:
             await self.altherma.climate_control.set_leaving_water_temperature_cooling(round(float(payload)))
 
     async def publish_coro(self, value, callback, output, prop):
-        output[prop] = callback(await value if inspect.isawaitable(value) else value)
+        if inspect.iscoroutinefunction(value):
+            v = await value()
+        elif inspect.isawaitable(value):
+            v = await value
+        else:
+            v = value
+        output[prop] = callback(v)
 
     def publish_task(self, *args):
         return self.event_loop.create_task(self.publish_coro(*args))

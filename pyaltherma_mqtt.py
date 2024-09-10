@@ -28,9 +28,9 @@ MQTT_ONETOPIC = os.environ.get('PYALTHERMA_MQTT_ONETOPIC')
 MQTT_TOPIC_PREFIX_SET = '%s/set' % MQTT_TOPIC_PREFIX
 MQTT_TOPIC_PREFIX_STATE = '%s/state' % MQTT_TOPIC_PREFIX
 MQTT_TOPIC_ONETOPIC = '%s/state/%s' % (MQTT_TOPIC_PREFIX, MQTT_ONETOPIC)
-POLL_INTERVAL = os.environ.get('PYALTHERMA_POLL_INTERVAL', 5)
+POLL_INTERVAL = float(os.environ.get('PYALTHERMA_POLL_INTERVAL', 5))
 ALTHERMA_HOST = os.environ.get('PYALTHERMA_HOST')
-ALTHERMA_TIMEOUT = os.environ.get('PYALTHERMA_TIMEOUT', 3)
+ALTHERMA_TIMEOUT = float(os.environ.get('PYALTHERMA_TIMEOUT', 3))
 
 
 class AsyncioHelper:
@@ -183,7 +183,7 @@ class AlthermaPublisher:
             try:
                 start_time = time.time()
                 await self.messenger.publish_messages()
-                await asyncio.sleep(start_time - time.time() + int(POLL_INTERVAL))
+                await asyncio.sleep(start_time - time.time() + POLL_INTERVAL)
             except asyncio.CancelledError:
                 break
             except AlthermaException as e:

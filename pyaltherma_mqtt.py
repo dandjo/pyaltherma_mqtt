@@ -30,6 +30,7 @@ MQTT_TOPIC_PREFIX_STATE = '%s/state' % MQTT_TOPIC_PREFIX
 MQTT_TOPIC_ONETOPIC = '%s/state/%s' % (MQTT_TOPIC_PREFIX, MQTT_ONETOPIC)
 POLL_INTERVAL = os.environ.get('PYALTHERMA_POLL_INTERVAL', 5)
 ALTHERMA_HOST = os.environ.get('PYALTHERMA_HOST')
+ALTHERMA_TIMEOUT = os.environ.get('PYALTHERMA_TIMEOUT', 3)
 
 
 class AsyncioHelper:
@@ -133,7 +134,7 @@ class AlthermaMessenger:
         elif topic == 'leaving_water_temp_cooling':
             await self.altherma.climate_control.set_leaving_water_temperature_cooling(round(float(payload)))
 
-    async def publish_coro(self, value, callback, output, prop):
+    async def publish_task(self, value, callback, output, prop):
         if inspect.iscoroutinefunction(value):
             v = await value()
         elif inspect.isawaitable(value):
@@ -142,12 +143,9 @@ class AlthermaMessenger:
             v = value
         output[prop] = callback(v)
 
-    def publish_task(self, *args):
-        return self.event_loop.create_task(self.publish_coro(*args))
-
     async def publish_messages(self):
         msgs = {}
-        await asyncio.wait([
+        await asyncio.gather(
             self.publish_task(self.altherma.hot_water_tank.is_turned_on, lambda v: 'ON' if v else 'OFF', msgs, 'dhw_power'),
             self.publish_task(self.altherma.hot_water_tank.tank_temperature, lambda v: str(round(v)), msgs, 'dhw_temp'),
             self.publish_task(self.altherma.hot_water_tank.target_temperature, lambda v: str(round(v)), msgs, 'dhw_target_temp'),
@@ -166,7 +164,8 @@ class AlthermaMessenger:
             self.publish_task(self.altherma.climate_control.leaving_water_temperature_heating, lambda v: str(round(v)), msgs, 'leaving_water_temp_heating'),
             self.publish_task(self.altherma.climate_control.leaving_water_temperature_cooling, lambda v: str(round(v)), msgs, 'leaving_water_temp_cooling'),
             self.publish_task(self.altherma.climate_control.leaving_water_temperature_auto, lambda v: str(round(v)), msgs, 'leaving_water_temp_auto'),
-        ])
+            return_exceptions=False
+        )
         if MQTT_ONETOPIC:
             self.mqttc.publish(MQTT_TOPIC_ONETOPIC, json.dumps(msgs))
         else:
@@ -238,8 +237,8 @@ class AlthermaMqtt:
         self.mqttc.socket().setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 2048)
         await self.connected_future
         # connect to daikin api
-        async with aiohttp.ClientSession() as altherma_session:
-            self.altherma = AlthermaController(DaikinWSConnection(altherma_session, ALTHERMA_HOST))
+        async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(ALTHERMA_TIMEOUT)) as altherma_session:
+            self.altherma = AlthermaController(DaikinWSConnection(altherma_session, ALTHERMA_HOST, ALTHERMA_TIMEOUT))
             await self.altherma.discover_units()
             self.messenger = AlthermaMessenger(self.event_loop, self.mqttc, self.altherma)
             self.publisher = AlthermaPublisher(self.messenger)

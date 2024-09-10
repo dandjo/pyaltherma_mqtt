@@ -22,6 +22,7 @@ Before you start the script as a service, take a look at the configurable enviro
 | `PYALTHERMA_MQTT_ONETOPIC`     | None          | no        | If set, a single message will be sent, with all properties as JSON.          |
 | `PYALTHERMA_POLL_INTERVAL`     | 5             | no        | The inverval properties should be polled from the Daikin API.                |
 | `PYALTHERMA_HOST`              | None          | yes       | The host of the Daikin controller. Must be the IP.                           |
+| `PYALTHERMA_TIMEOUT            | 3             | no        | The timeout for the connection to the Daikin controller in seconds.          |
 
 Copy/paste template for environment file (e.g. `/etc/environment`):
 
@@ -34,6 +35,7 @@ PYALTHERMA_MQTT_TOPIC_PREFIX="pyaltherma"
 PYALTHERMA_MQTT_ONETOPIC="one"
 PYALTHERMA_POLL_INTERVAL="5"
 PYALTHERMA_HOST="<replace_me>"
+PYALTHERMA_TIMEOUT="3"
 ```
 
 The resulting topics would be:
